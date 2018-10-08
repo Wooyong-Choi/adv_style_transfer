@@ -39,7 +39,7 @@ class Net(nn.Module):
             elif self.type == 'TRANS':
                 return enc_final.mean(dim=0)
         
-        enc_state = self.choose_decoder(dec_idx).init_decoder_state(src, memory_bank, enc_final)
+        enc_state = self.choose_decoder(dec_idx).init_decoder_state(src[1:], memory_bank, enc_final)
         decoder_outputs, dec_state, attns = self.choose_decoder(dec_idx)(src, memory_bank, enc_state)
         
         decoded = self.generator(decoder_outputs)
