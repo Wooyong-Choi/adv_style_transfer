@@ -1,17 +1,52 @@
 import os
-import torch
-import numpy as np
 import random
 
+import numpy as np
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
 PAD_WORD="<pad>"
-EOS_WORD="<eos>"
 SOS_WORD="<sos>"
+EOS_WORD="<eos>"
 UNK_WORD="<unk>"
 
 PAD_IDX=0
 SOS_IDX=1
 EOS_IDX=2
 UNK_IDX=3
+
+
+class LabelSmoothingLoss(nn.Module):
+    """
+    With label smoothing,
+    KL-divergence between q_{smoothed ground truth prob.}(w)
+    and p_{prob. computed by model}(w) is minimized.
+    """
+    def __init__(self, label_smoothing, tgt_vocab_size, ignore_index=-100):
+        assert 0.0 < label_smoothing <= 1.0
+        self.padding_idx = ignore_index
+        super(LabelSmoothingLoss, self).__init__()
+
+        smoothing_value = label_smoothing / (tgt_vocab_size - 2)
+        one_hot = torch.full((tgt_vocab_size,), smoothing_value)
+        one_hot[self.padding_idx] = 0
+        self.register_buffer('one_hot', one_hot.unsqueeze(0))
+
+        self.confidence = 1.0 - label_smoothing
+
+    def forward(self, output, target):
+        """
+        output (FloatTensor): batch_size x n_classes
+        target (LongTensor): batch_size
+        """
+        model_prob = self.one_hot.repeat(target.size(0), 1)
+        model_prob.scatter_(1, target.unsqueeze(1), self.confidence)
+        model_prob.masked_fill_((target == self.padding_idx).unsqueeze(1), 0)
+
+        return F.kl_div(output, model_prob, reduction='sum')
 
 
 class Dictionary(object):
@@ -120,7 +155,7 @@ class Corpus(object):
         print("Number of sentences dropped from {}: {} out of {} total".
               format(path, dropped, linecount))
         return lines
-
+    
 
 def batchify(data, bsz, shuffle=False, gpu=False):
     if shuffle:
@@ -153,8 +188,8 @@ def batchify(data, bsz, shuffle=False, gpu=False):
             x += zeros
             y += zeros
 
-        source = torch.LongTensor(np.array(source).transpose((1, 0)))
-        target = torch.LongTensor(np.array(target)).view(-1)
+        source = torch.LongTensor(np.array(source).transpose(1, 0))
+        target = torch.LongTensor(np.array(target).transpose(1, 0)).contiguous().view(-1)
         lengths = torch.LongTensor(np.array(lengths))
 
         batches.append((source, target, lengths))
