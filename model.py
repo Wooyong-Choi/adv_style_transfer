@@ -3,7 +3,6 @@ import torch.nn as nn
 from torch.nn.init import xavier_uniform_
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
-
 from onmt.modules import Embeddings
 from onmt.encoders import RNNEncoder, TransformerEncoder
 from onmt.decoders.decoder import StdRNNDecoder
@@ -12,7 +11,9 @@ from onmt.decoders.transformer import TransformerDecoder
 from onmt.translate import GNMTGlobalScorer
 from onmt.translate.beam import Beam
 
-from utils import PAD_IDX, SOS_IDX, EOS_IDX, UNK_IDX
+from dataset import PAD_IDX, SOS_IDX, EOS_IDX, UNK_IDX
+
+
 '''
 Model definition
 '''
