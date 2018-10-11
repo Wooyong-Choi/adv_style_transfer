@@ -129,12 +129,15 @@ def batchify(data, bsz, shuffle=False, gpu=False):
     if shuffle:
         random.shuffle(data)
 
-    nbatch = len(data) // bsz
+    nbatch = (len(data) // bsz) + 1
     batches = []
 
     for i in range(nbatch):
         # Pad batches to maximum sequence length in batch
-        batch = data[i*bsz:(i+1)*bsz]
+        start_idx = i*bsz
+        end_idx = (i+1)*bsz
+        end_idx = end_idx if end_idx < len(data) else len(data)
+        batch = data[start_idx:end_idx]
         
         # subtract 1 from lengths b/c includes BOTH starts & end symbols
         words = batch
@@ -161,6 +164,7 @@ def batchify(data, bsz, shuffle=False, gpu=False):
         lengths = torch.LongTensor(np.array(lengths))
 
         batches.append((source, target, lengths))
+        
     print('{} batches'.format(len(batches)))
     return batches
 
